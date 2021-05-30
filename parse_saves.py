@@ -95,6 +95,12 @@ def main():
             LOG.error("--outfile must end in one of the allowed extensions: %s",
                       ", ".join(allowed_extensions))
             sys.exit(1)
+        try:
+            figure = plt.figure(figsize=GRAPH['size'])
+        except Exception as _e:
+            LOG.error("Displaying plot failed with error:\n    %s", _e)
+            LOG.error("You still may be able to save the graph using --outfile <image.png>")
+            sys.exit(1)
     jsondata = []
     csvdata = []
     graphdata = {_k: [] for _k in HEADERS}
@@ -128,7 +134,6 @@ def main():
         sns.set_theme()
         rows = len(GRAPH['graphs'])
         cols = max([len(_x) for _x in GRAPH['graphs']])
-        figure = plt.figure(figsize=GRAPH['size'])
         gridspec = figure.add_gridspec(rows, cols)
         for row in range(0, rows):
             for col in range(0, len(GRAPH['graphs'][row])):
@@ -142,10 +147,6 @@ def main():
                     sns.scatterplot(data=data, x='playtime', y=key, label=label, ax=_ax)
                     if graph.get('log'):
                         _ax.set(yscale="log")
-        #except Exception as _e:
-        #    LOG.error("Displaying plot failed with error:\n    %s", _e)
-        #    LOG.error("You still may be able to save the graph using --outfile <image.png>")
-        #    sys.exit(1)
         plt.tight_layout()
         if args.outfile:
             figure.savefig(args.outfile)
