@@ -30,7 +30,7 @@ class SubsetProblem(Problem):
         self.n_max = sum(_[1] for _ in groups)
 
     def _evaluate(self, x, out, *args, **kwargs):
-        out["F"] = -self.func(self.L, x)
+        out["F"] = - self.func(self.L, x)
         out["G"] = (self.n_max - np.sum(x)) > 0
 
 
@@ -89,6 +89,7 @@ class MyMutation(Mutation):
 def run_optimizer(stats, offset, item_groups, func):
     problem = SubsetProblem(stats, offset, item_groups, func)
 
+    #algorithm = NSGA2(
     algorithm = GA(
         pop_size=stats.shape[1]-offset,
         sampling=MySampling(),

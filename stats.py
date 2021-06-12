@@ -29,38 +29,65 @@ class Stats:
     exp: float = 100
     wandoos: float = 100
     cooldown: float = 100
-    #quest: float = 0
+    quest: float = 0
     #cooking: float = 0
 
-def func_ABC_ADE(L, x):
-    return ((1 + np.sum(L[0][x])) * 
-            ((1 + np.sum(L[1][x])) * (1 + np.sum(L[2][x])) + (1 + np.sum(L[3][x])) * (1 + np.sum(L[4][x]))))
+def func_ABC_ADE(indices):
+    A, B, C, D, E = indices
+    def generator(L, x):
+        return ((1 + np.sum(L[A][x])) * 
+            ((1 + np.sum(L[B][x])) * (1 + np.sum(L[C][x])) + (1 + np.sum(L[D][x])) * (1 + np.sum(L[E][x]))))
+    return generator
 
-def func_ABsqrtC_ADsqrtE(L, x):
-    term1 = (1 + np.sum(L[1][x])) * math.sqrt(1 + np.sum(L[2][x]))
-    term2 = (1 + np.sum(L[3][x])) * math.sqrt(1 + np.sum(L[4][x]))
-    return (1 + np.sum(L[0][x])) * (term1 + term2)
+def func_ABsqrtC_ADsqrtE(indices):
+    A, B, C, D, E = indices
+    def generator(L, x):
+        term1 = (1 + np.sum(L[B][x])) * math.sqrt(1 + np.sum(L[C][x]))
+        term2 = (1 + np.sum(L[D][x])) * math.sqrt(1 + np.sum(L[E][x]))
+        return (1 + np.sum(L[A][x])) * (term1 + term2)
+    return generator
 
-def func_ABC(L, x):
-    return (1 + np.sum(L[0][x])) *  ((1 + np.sum(L[1][x])) * (1 + np.sum(L[2][x])))
+def func_ABC(indices):
+    A, B, C = indices
+    def generator(L, x):
+        return (1 + np.sum(L[A][x])) *  ((1 + np.sum(L[B][x])) * (1 + np.sum(L[C][x])))
+    return generator
 
-def func_ABsqrtC(L, x):
-    return (1 + np.sum(L[0][x])) *  ((1 + np.sum(L[1][x])) * math.sqrt(1 + np.sum(L[2][x])))
+def func_ABsqrtC(indices):
+    A, B, C = indices
+    def generator(L, x):
+        return (1 + np.sum(L[A][x])) *  ((1 + np.sum(L[B][x])) * math.sqrt(1 + np.sum(L[C][x])))
+    return generator
 
-def func_AB(L, x):
-    return ((1 + np.sum(L[0][x])) * (1 + np.sum(L[1][x])))
+def func_AB(indices):
+    A, B = indices
+    def generator(L, x):
+        return ((1 + np.sum(L[A][x])) * (1 + np.sum(L[B][x])))
+    return generator
 
-def func_AB_CD(L, x):
-    return (1 + np.sum(L[0][x])) * (1 + np.sum(L[1][x])) + (1 + np.sum(L[2][x])) * (1 + np.sum(L[3][x]))
+def func_AB_CD(indices):
+    A, B, C, D = indices
+    def generator(L, x):
+        return (1 + np.sum(L[A][x])) * (1 + np.sum(L[B][x])) + (1 + np.sum(L[C][x])) * (1 + np.sum(L[D][x]))
+    return generator
 
-def func_AB_AC(L, x):
-    return (1 + np.sum(L[0][x])) * ((1 + np.sum(L[1][x])) + (1 + np.sum(L[2][x])))
+def func_AB_AC(indices):
+    A, B, C = indices
+    def generator(L, x):
+        return (1 + np.sum(L[A][x])) * ((1 + np.sum(L[B][x])) + (1 + np.sum(L[C][x])))
+    return generator
 
-def func_A(L, x):
-    return 1 + np.sum(L[0][x])
+def func_A(indices):
+    A, = indices
+    def generator(L, x):
+        return 1 + np.sum(L[A][x])
+    return generator
 
-def func_negA(L, x):
-    return -1 * (1 + np.sum(L[0][x]))
+def func_negA(indices):
+    A, = indices
+    def generator(L, x):
+        return -1 * (1 + np.sum(L[A][x]))
+    return generator
 
 STAT_MAP = {
     'ngu': {
@@ -148,7 +175,9 @@ def filter_items(items, stypes=None):
         if not hasattr(Stats, stype):
             logging.error(f"{stype} is not a valid filter type")
             sys.exit(1)
-    for item in items.values():
+    for item in items:
+        if not item:
+           continue
         stats = calc_stats(item)
         for stype in stypes:
             val = getattr(stats, stype)
@@ -219,7 +248,8 @@ def calc_stats(loadout):
                 stats.cooldown -= adjval
             elif 'GoldDrop' in stype:
                 stats.gold_drops += adjval
-            #QuestDrop
+            elif 'QuestDrop' in stype:
+                stats.quest += adjval
             #DaycareSpeed
             #Blood
             #Res3Power
@@ -299,11 +329,17 @@ def compare_stats(ref_stats, stats, priorities):
             return False
     return False
 
-def optimize_items(items, num_accs, priority):
+def optimize_items(all_items, locked, priorities):
     def items_by_type(items, itype):
-        return [_ for _ in items if _['type'] == itype]
+        return [_ for _ in items if _['type'] == itype and _ not in locked]
 
     def group_items(items, allowed, var_items, item_groups):
+        if not items:
+            return 0
+        locked_count = len([True for _ in locked if _['type'] == items[0]['type']])
+        allowed -= locked_count
+        if allowed <= 0:
+            return 0
         if len(items) > allowed:
             item_groups.append((len(items), allowed))
             #var_items.extend(random.sample(items, k=len(items)))
@@ -315,49 +351,54 @@ def optimize_items(items, num_accs, priority):
             return len(items)
         return 0
 
-    head_items = items_by_type(items, "Head") 
-    chest_items = items_by_type(items, "Chest") 
-    legs_items = items_by_type(items, "Legs")
-    boots_items = items_by_type(items, "Boots") 
-    weapon_items = items_by_type(items, "Weapon") 
-    acc_items = items_by_type(items, "Accessory")
-    if False:
-        logging.warning(f"head: {len(head_items)}")
-        logging.warning(f"chest: {len(chest_items)}")
-        logging.warning(f"legs: {len(legs_items)}")
-        logging.warning(f"boots: {len(boots_items)}")
-        logging.warning(f"accs ({num_accs}): {len(acc_items)}")
-    items = []
-    item_groups = []
-    offset = 0
-    offset += group_items(head_items, 1, items, item_groups)
-    offset += group_items(chest_items, 1, items, item_groups)
-    offset += group_items(legs_items, 1, items, item_groups)
-    offset += group_items(boots_items, 1, items, item_groups)
-    offset += group_items(weapon_items, 1, items, item_groups)
-    offset += group_items(acc_items, num_accs, items, item_groups)
+    for priority, num_accs in priorities:
+        filt_items = filter_items(all_items, [priority])
+        head_items = items_by_type(filt_items, "Head") 
+        chest_items = items_by_type(filt_items, "Chest") 
+        legs_items = items_by_type(filt_items, "Legs")
+        boots_items = items_by_type(filt_items, "Boots") 
+        weapon_items = items_by_type(filt_items, "Weapon") 
+        acc_items = items_by_type(filt_items, "Accessory")
+        if False:
+            logging.warning(f"head: {len(head_items)}")
+            logging.warning(f"chest: {len(chest_items)}")
+            logging.warning(f"legs: {len(legs_items)}")
+            logging.warning(f"boots: {len(boots_items)}")
+            logging.warning(f"accs ({num_accs}): {len(acc_items)}")
+        items = locked.copy()
+        item_groups = []
+        offset = len(locked)
+        offset += group_items(head_items, 1, items, item_groups)
+        offset += group_items(chest_items, 1, items, item_groups)
+        offset += group_items(legs_items, 1, items, item_groups)
+        offset += group_items(boots_items, 1, items, item_groups)
+        offset += group_items(weapon_items, 1, items, item_groups)
+        offset += group_items(acc_items, num_accs, items, item_groups)
 
-    if offset == len(items):
-        # No optimization needed
-        return items
+        if offset == len(items):
+            # No optimization needed
+            loadout = items
+            locked = items
+            continue
+        stypes = expand_stypes(priority)
+        stats = np.empty([len(stypes), len(items)])
+        for _c, item in enumerate(items):
+            stat = calc_stats(item)
+            for _r, _s in enumerate(stypes):
+                if _s in ('toughness', 'power'):
+                    stats[_r, _c] = getattr(stat, _s)
+                else:
+                    stats[_r, _c] = getattr(stat, _s) / 100.0 - 1.0
+        _map = STAT_MAP.get(priority)
+        if _map:
+            indices = [stypes.index(_) for _ in _map['stats']]
+            func = _map['func'](indices)
+        else:
+            func = func_A([stypes.index(priority)])
 
-    stypes = expand_stypes(priority)
-    stats = np.empty([len(stypes), len(items)])
-    for _c, item in enumerate(items):
-       stat = calc_stats(item)
-       for _r, _s in enumerate(stypes):
-           if _s in ('toughness', 'power'):
-               stats[_r, _c] = getattr(stat, _s)
-           else:
-               stats[_r, _c] = getattr(stat, _s) / 100.0 - 1.0
-
-    func_priority = list(priority)[0]
-    if func_priority in STAT_MAP:
-        func = STAT_MAP[list(priority)[0]]['func']
-    else:
-        func = func_A
-    indices, res = run_optimizer(stats, offset, item_groups, func)
-    loadout = [items[_] for _ in indices]
+        indices, res = run_optimizer(stats, offset, item_groups, func)
+        loadout = [items[_] for _ in indices]
+        locked = loadout
     # print(calc_priority(calc_stats(loadout), 'ngu'))
     return loadout
 

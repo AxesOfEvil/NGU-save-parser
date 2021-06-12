@@ -1,10 +1,12 @@
 import json
 import sys
 import logging
+import argparse
 from spectype import SpecType
 from items import Items, ItemType
 from stats import calc_stats, filter_items, optimize_items, calc_priority
 from itertools import combinations
+from parse_saves import read_savegame
 
 def build_item(item):
     power = item['curAttack']['value']
@@ -33,9 +35,8 @@ def build_item(item):
         }
 
 
-def parse_items(fname):
-    with open(fname) as _fh:
-        inventory = json.load(_fh)['inventory']['value']
+def parse_items(sav):
+    inventory = sav['inventory']['value']
 
     cube = {
         "power": inventory['cubePower']['value'],
@@ -46,15 +47,15 @@ def parse_items(fname):
         item = inventory[slot]['value']
         items[slot] = build_item(item)
     for idx, item in enumerate(inventory['accs']['value']['_items']['value']):
-        if item != [None, None]:
+        if list(item) != [None, None]:
             items[f'acc{idx+1}'] = build_item(item)
     for idx, item in enumerate(inventory['daycare']['value']['_items']['value']):
-        if item != [None, None]:
+        if list(item) != [None, None]:
             items[f'daycare{idx+1}'] = build_item(item)
     for idx, item in enumerate(inventory['inventory']['value']['_items']['value']):
         row = idx // 12
         col = idx % 12
-        if item == [None, None] or item['id']['value'] == 0:
+        if list(item) == [None, None] or item['id']['value'] == 0:
             continue
         items[f"{row},{col}"] = build_item(item)
         #items[(row, col)] = build_item(item)
@@ -73,29 +74,66 @@ def parse_items(fname):
         sys.exit(1)
     return items
 
-def optimize(items, priority=None):
+def display_priority(stats, priority):
+    priorities = (priority,)
+    for _p in ('ngu', 'beards', 'pow_cap', 'wandoos'):
+        if _p in priority:
+            priorities = (_p, f'e_{_p}', f'm_{_p}')
+            break
+    print("  ".join([f"{_p}; {calc_priority(stats, _p)}" for _p in priorities]))
+
+def optimize(items, lock=None, priority_list=None):
+    locked = []
     best_loadout = []
     best_stats = None
     count = 0
 
     num_accs = len([True for _x in items if _x.startswith('acc')])
-    if priority is None:
-        priority = {'power': 0.5, 'toughness': 0.5}
-    filt_items = filter_items(items, priority.keys())
-    res = optimize_items(filt_items, num_accs, priority.keys())
+    if priority_list is None:
+        priority = [('power', num_accs)]
+    else:
+        priority = []
+        for _p in priority_list:
+            if ',' in _p:
+                _p1, _n = _p.split(',')
+                priority.append((_p1, int(_n)))
+            else:
+                priority.append((_p, num_accs))
+    if lock:
+        for _id in lock:
+            item = next((_ for _ in items.values() if _['id'] == _id), None)
+            if item:
+                locked.append(item)
+    #filt_items = filter_items(items, [_[0] for _ in priority])
+    res = optimize_items(items.values(), locked, priority)
     return res
 
-fname = sys.argv[1]
-priority = sys.argv[2]
-items = parse_items(fname)
-loadout = optimize(items, {priority: 1})
-#loadout = [items[_i]
-#           for _i in ['head', 'chest', 'legs', 'boots', 'weapon'] + 
-#                     [f'acc{_a}' for _a in range(1, 17) if f'acc{_a}' in items]
-#           if items.get(_i)]
-print(calc_stats(loadout))
-print(f"{priority}: {calc_priority(calc_stats(loadout), priority)}")
-for i in loadout:
-    print(f"    {i['name']}")
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--infile", help="Sav/json file to parse")
+    parser.add_argument("--stat", nargs='+', help="Stat to optimize: stat[,num_accessories]")
+    parser.add_argument("--lock", nargs='+', type=int, help="enforce certain items be worn (by ID)")
+    args = parser.parse_args()
+
+    try:
+        with open(args.infile) as _fh:
+            sav = json.load(_fh)
+    except:
+        try:
+            sav = read_savegame(args.infile)
+        except Exception as _e:
+            logging.critical("Failed to read save_file: %s", _e)
+            sys.exit(1)
+    items = parse_items(sav)
+    loadout = optimize(items, args.lock, args.stat)
+    stats = calc_stats(loadout)
+    print(stats)
+    for priority in args.stat:
+        priority = priority.split(',')[0]
+        display_priority(stats, priority)
+    for i in loadout:
+        print(f"    {i['id']} - {i['name']}")
 #print(json.dumps(items, indent=2))
 #print(json.dumps(loadout, indent=2))
+
+main()
