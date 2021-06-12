@@ -1,18 +1,26 @@
 # Parse NGU save games
 There are 2 capabilities here:
  - Generate historical graphs from a set of save files
- - Generate optimal equipment lists (similar to the ![Equipment Optimizer](https://gmiclotte.github.io/gear-optimizer) from a save-game file
+ - Generate optimal equipment lists (similar to the [Equipment Optimizer](https://gmiclotte.github.io/gear-optimizer) from a save-game file
 
 ### To run the gear optimizer
-  `pip install pymoo`
-  Run:
-  `python optimize.py --inf <path to .sav file> --stat <stat>[,# accs] ...`
-  I.e to optimize for drop-chance using 3 accessory slots, and gold_drops for any remaining slots, run:
-  `python ptimize.py --inf NGUIdle-SteamBackup.sav --stat drops,3 gold_drops`
-  The optimizer is a single-objective knapsack optimizer.  It will fill as many apparel/weapon/accessory slots with the 1st objective, and then loop on each objective until all slots are full.  So order is important in specifying the stats.
+Install pymoo:
+
+```pip install pymoo```
   
-  A full list of allowed stats can be found via:
-  `python optimize.py --list_stats`
+Run:
+
+```python optimize.py --inf <path to .sav file> --stat <stat>[,# accs] ...```
+  
+I.e to optimize for drop-chance using 3 accessory slots, and gold_drops for any remaining slots, run:
+
+```python ptimize.py --inf NGUIdle-SteamBackup.sav --stat drops,3 gold_drops```
+  
+The optimizer is a single-objective knapsack optimizer.  It will fill as many apparel/weapon/accessory slots with the 1st objective, and then loop on each objective until all slots are full.  So order is important in specifying the stats.
+  
+A full list of allowed stats can be found via:
+
+```python optimize.py --list_stats```
 
 ### To generate CSV data:
   `python parse_saves.py --csv --outfile data.csv <path to NGU Saves>/NGUSave-Build*.txt`
