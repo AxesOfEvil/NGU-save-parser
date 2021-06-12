@@ -4,9 +4,15 @@ import logging
 import argparse
 from spectype import SpecType
 from items import Items, ItemType
-from stats import calc_stats, filter_items, optimize_items, calc_priority
+from stats import calc_stats, filter_items, optimize_items, calc_priority, get_stat_list
 from itertools import combinations
 from parse_saves import read_savegame
+
+def show_stats():
+    stats = sorted(list(get_stat_list()))
+    print("Available stats:")
+    for stat in stats:
+        print(f"\t{stat}")
 
 def build_item(item):
     power = item['curAttack']['value']
@@ -113,8 +119,11 @@ def main():
     parser.add_argument("--infile", help="Sav/json file to parse")
     parser.add_argument("--stat", nargs='+', help="Stat to optimize: stat[,num_accessories]")
     parser.add_argument("--lock", nargs='+', type=int, help="enforce certain items be worn (by ID)")
+    parser.add_argument("--list-stats", action='store_true', help="List available stats")
     args = parser.parse_args()
-
+    if args.list_stats:
+        show_stats()
+        sys.exit(0)
     try:
         with open(args.infile) as _fh:
             sav = json.load(_fh)

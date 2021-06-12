@@ -402,3 +402,9 @@ def optimize_items(all_items, locked, priorities):
     # print(calc_priority(calc_stats(loadout), 'ngu'))
     return loadout
 
+def get_stat_list():
+    attrs = {_ for _ in Stats.__dict__ if not _.startswith('__')}
+    for attr in STAT_MAP:
+        attrs.add(attr)
+    return attrs
+
