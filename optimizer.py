@@ -15,7 +15,8 @@ class SubsetProblem(Problem):
                  L,
                  fixed,
                  groups,
-                 func
+                 func,
+                 unique=None
                  ):
         nvar = len(L[0]) - fixed
         super().__init__(n_var=len(L[0]), n_obj=1, n_constr=1, elementwise_evaluation=True)
@@ -23,6 +24,7 @@ class SubsetProblem(Problem):
         self.nvar = nvar
         self.groups = []
         self.func = func
+        self.unique = unique
         pos = fixed
         for grp in groups:
             self.groups.append((pos, grp[0], grp[1]))
@@ -31,7 +33,15 @@ class SubsetProblem(Problem):
 
     def _evaluate(self, x, out, *args, **kwargs):
         out["F"] = - self.func(self.L, x)
-        out["G"] = (self.n_max - np.sum(x)) > 0
+        unique = set()
+        all_unique = -1
+        if self.unique is not None:
+            for elem in self.unique[0, x]:
+                if elem in unique:
+                    all_unique = 1
+                    break
+                unique.add(elem)
+        out["G"] = [(self.n_max - np.sum(x)) > 0, all_unique]
 
 
 class MySampling(Sampling):
@@ -86,8 +96,8 @@ class MyMutation(Mutation):
         return X
 
 
-def run_optimizer(stats, offset, item_groups, func):
-    problem = SubsetProblem(stats, offset, item_groups, func)
+def run_optimizer(stats, offset, item_groups, func, unique=None):
+    problem = SubsetProblem(stats, offset, item_groups, func, unique=unique)
 
     #algorithm = NSGA2(
     algorithm = GA(

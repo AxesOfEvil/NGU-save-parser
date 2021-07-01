@@ -334,17 +334,25 @@ def optimize_items(all_items, locked, priorities):
         return [_ for _ in items if _['type'] == itype and _ not in locked]
 
     def group_items(items, allowed, var_items, item_groups):
+        # returns # of items added that do not need optimization
+        # non-optimize items are pushed to the front of the list,
+        # optimize items are pushed to the back
         if not items:
             return 0
         locked_count = len([True for _ in locked if _['type'] == items[0]['type']])
         allowed -= locked_count
         if allowed <= 0:
             return 0
+        unique_items = {_['id'] for _ in items}
+        # if the number of unique items is less than allowed, than the solver won't find a solution
+        allowed = min(allowed, len(unique_items))
         if len(items) > allowed:
+            # There are too many potential items, so we need to select a subset
             item_groups.append((len(items), allowed))
             #var_items.extend(random.sample(items, k=len(items)))
             var_items.extend(items)
-        elif len(items) == allowed:
+        elif len(items) <= allowed:
+            # all items can be used
             new_items = items + var_items
             var_items.clear()
             var_items.extend(new_items)
@@ -382,6 +390,7 @@ def optimize_items(all_items, locked, priorities):
             continue
         stypes = expand_stypes(priority)
         stats = np.empty([len(stypes), len(items)])
+        item_ids = np.empty([1, len(items)])
         for _c, item in enumerate(items):
             stat = calc_stats(item)
             for _r, _s in enumerate(stypes):
@@ -389,6 +398,8 @@ def optimize_items(all_items, locked, priorities):
                     stats[_r, _c] = getattr(stat, _s)
                 else:
                     stats[_r, _c] = getattr(stat, _s) / 100.0 - 1.0
+            item_ids[0, _c] = item['id']
+
         _map = STAT_MAP.get(priority)
         if _map:
             indices = [stypes.index(_) for _ in _map['stats']]
@@ -396,7 +407,8 @@ def optimize_items(all_items, locked, priorities):
         else:
             func = func_A([stypes.index(priority)])
 
-        indices, res = run_optimizer(stats, offset, item_groups, func)
+        indices, res = run_optimizer(stats, offset, item_groups, func,
+                                     unique=item_ids)
         loadout = [items[_] for _ in indices]
         locked = loadout
     # print(calc_priority(calc_stats(loadout), 'ngu'))

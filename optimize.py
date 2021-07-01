@@ -88,13 +88,14 @@ def display_priority(stats, priority):
             break
     print("  ".join([f"{_p}; {calc_priority(stats, _p)}" for _p in priorities]))
 
-def optimize(items, lock=None, priority_list=None):
+def optimize(items, lock=None, priority_list=None, num_accs=None):
     locked = []
     best_loadout = []
     best_stats = None
     count = 0
 
-    num_accs = len([True for _x in items if _x.startswith('acc')])
+    if num_accs is None:
+        num_accs = len([True for _x in items if _x.startswith('acc')])
     if priority_list is None:
         priority = [('power', num_accs)]
     else:
@@ -120,6 +121,7 @@ def main():
     parser.add_argument("--stat", nargs='+', help="Stat to optimize: stat[,num_accessories]")
     parser.add_argument("--lock", nargs='+', type=int, help="enforce certain items be worn (by ID)")
     parser.add_argument("--list-stats", action='store_true', help="List available stats")
+    parser.add_argument("--accessories", type=int, help="Override # of accessories")
     args = parser.parse_args()
     if args.list_stats:
         show_stats()
@@ -134,14 +136,14 @@ def main():
             logging.critical("Failed to read save_file: %s", _e)
             sys.exit(1)
     items = parse_items(sav)
-    loadout = optimize(items, args.lock, args.stat)
+    loadout = optimize(items, args.lock, args.stat, num_accs=args.accessories)
     stats = calc_stats(loadout)
     print(stats)
     for priority in args.stat:
         priority = priority.split(',')[0]
         display_priority(stats, priority)
     for i in loadout:
-        print(f"    {i['id']} - {i['name']}")
+        print(f"        {i['id']:3d}, # {i['name']}")
 #print(json.dumps(items, indent=2))
 #print(json.dumps(loadout, indent=2))
 

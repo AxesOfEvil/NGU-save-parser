@@ -53,9 +53,14 @@ def read_savegame(fname):
     with open(fname, 'rb') as _fh:
         a = _fh.read()
         data = base64.b64decode(a)
-        data = base64.b64decode(data[102:])
+        try:
+            offset = data.index(b'checksum')+34
+        except:
+            print("Failed to find checksum")
+            sys.exit(1)
+        data = base64.b64decode(data[offset:])
         ret = []
-        des = Deserializer(data, 13+16+5+12)
+        des = Deserializer(data, data.index(b'PlayerData')-6)
         des.parse()
         ret = des.get('PlayerData')
         return ret
