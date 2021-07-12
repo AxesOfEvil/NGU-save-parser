@@ -10,6 +10,8 @@ import numpy as np
 class Stats:
     power: int = 0
     toughness: int = 0
+    espeed: float = 100
+    mspeed: float = 100
     ecap: float = 100
     epow: float = 100
     ebars: float = 100
@@ -30,60 +32,60 @@ class Stats:
     wandoos: float = 100
     cooldown: float = 100
     quest: float = 0
-    #cooking: float = 0
+    cooking: float = 100
 
-def func_ABC_ADE(indices):
+def func_ABC_ADE(indices, skew=1.0):
     A, B, C, D, E = indices
     def generator(L, x):
         return ((1 + np.sum(L[A][x])) * 
-            ((1 + np.sum(L[B][x])) * (1 + np.sum(L[C][x])) + (1 + np.sum(L[D][x])) * (1 + np.sum(L[E][x]))))
+            (skew * (1 + np.sum(L[B][x])) * (1 + np.sum(L[C][x])) + (1 + np.sum(L[D][x])) * (1 + np.sum(L[E][x]))))
     return generator
 
-def func_ABsqrtC_ADsqrtE(indices):
+def func_ABsqrtC_ADsqrtE(indices, skew=1.0):
     A, B, C, D, E = indices
     def generator(L, x):
         term1 = (1 + np.sum(L[B][x])) * math.sqrt(1 + np.sum(L[C][x]))
         term2 = (1 + np.sum(L[D][x])) * math.sqrt(1 + np.sum(L[E][x]))
-        return (1 + np.sum(L[A][x])) * (term1 + term2)
+        return (1 + np.sum(L[A][x])) * (skew * term1 + term2)
     return generator
 
-def func_ABC(indices):
+def func_ABC(indices, **_args):
     A, B, C = indices
     def generator(L, x):
         return (1 + np.sum(L[A][x])) *  ((1 + np.sum(L[B][x])) * (1 + np.sum(L[C][x])))
     return generator
 
-def func_ABsqrtC(indices):
+def func_ABsqrtC(indices, **_args):
     A, B, C = indices
     def generator(L, x):
         return (1 + np.sum(L[A][x])) *  ((1 + np.sum(L[B][x])) * math.sqrt(1 + np.sum(L[C][x])))
     return generator
 
-def func_AB(indices):
+def func_AB(indices, **_args):
     A, B = indices
     def generator(L, x):
         return ((1 + np.sum(L[A][x])) * (1 + np.sum(L[B][x])))
     return generator
 
-def func_AB_CD(indices):
+def func_AB_CD(indices, skew=1.0):
     A, B, C, D = indices
     def generator(L, x):
-        return (1 + np.sum(L[A][x])) * (1 + np.sum(L[B][x])) + (1 + np.sum(L[C][x])) * (1 + np.sum(L[D][x]))
+        return skew * (1 + np.sum(L[A][x])) * (1 + np.sum(L[B][x])) + (1 + np.sum(L[C][x])) * (1 + np.sum(L[D][x]))
     return generator
 
-def func_AB_AC(indices):
+def func_AB_AC(indices, skew=1.0):
     A, B, C = indices
     def generator(L, x):
-        return (1 + np.sum(L[A][x])) * ((1 + np.sum(L[B][x])) + (1 + np.sum(L[C][x])))
+        return (1 + np.sum(L[A][x])) * (skew * (1 + np.sum(L[B][x])) + (1 + np.sum(L[C][x])))
     return generator
 
-def func_A(indices):
+def func_A(indices, **_args):
     A, = indices
     def generator(L, x):
         return 1 + np.sum(L[A][x])
     return generator
 
-def func_negA(indices):
+def func_negA(indices, **_args):
     A, = indices
     def generator(L, x):
         return -1 * (1 + np.sum(L[A][x]))
@@ -250,17 +252,20 @@ def calc_stats(loadout):
                 stats.gold_drops += adjval
             elif 'QuestDrop' in stype:
                 stats.quest += adjval
+            elif 'EnergySpeed' in stype:
+                stats.espeed += adjval
+            elif 'MagicSpeed' in stype:
+                stats.mspeed += adjval
+            elif 'Cooking' in stype:
+                stats.cooking += adjval
             #DaycareSpeed
             #Blood
             #Res3Power
             #Res3Cap
             #Res3Bars
-            #Cooking
             #HackSpeed
             #WishSpeed
             #GoldRNG
-            #EnergySpeed
-            #MagicSpeed
             else:
                 logging.critical(f"Can't handle item type {stype}")
                 sys.exit(1)
@@ -359,7 +364,7 @@ def optimize_items(all_items, locked, priorities):
             return len(items)
         return 0
 
-    for priority, num_accs in priorities:
+    for priority, num_accs, skew in priorities:
         filt_items = filter_items(all_items, [priority])
         head_items = items_by_type(filt_items, "Head") 
         chest_items = items_by_type(filt_items, "Chest") 
@@ -403,10 +408,9 @@ def optimize_items(all_items, locked, priorities):
         _map = STAT_MAP.get(priority)
         if _map:
             indices = [stypes.index(_) for _ in _map['stats']]
-            func = _map['func'](indices)
+            func = _map['func'](indices, skew=skew)
         else:
             func = func_A([stypes.index(priority)])
-
         indices, res = run_optimizer(stats, offset, item_groups, func,
                                      unique=item_ids)
         loadout = [items[_] for _ in indices]

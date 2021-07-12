@@ -2,6 +2,7 @@ import json
 import sys
 import logging
 import argparse
+import re
 from spectype import SpecType
 from items import Items, ItemType
 from stats import calc_stats, filter_items, optimize_items, calc_priority, get_stat_list
@@ -101,11 +102,17 @@ def optimize(items, lock=None, priority_list=None, num_accs=None):
     else:
         priority = []
         for _p in priority_list:
-            if ',' in _p:
-                _p1, _n = _p.split(',')
-                priority.append((_p1, int(_n)))
-            else:
-                priority.append((_p, num_accs))
+            accs = num_accs
+            skew = 1.0  # skew is mjultiplied by 1t term in compound optimizations
+            match = re.search(r'^(\S+)(,[\d.]+)', _p)
+            if match:
+                accs = int(match.group(2)[1:])
+                _p = _p.replace(match.group(2), '')
+            match = re.search(r'^(\S+)(x[\d.]+)$', _p)
+            if match:
+                _p = match.group(1)
+                skew = float(match.group(2)[1:])
+            priority.append((_p, accs, skew))
     if lock:
         for _id in lock:
             item = next((_ for _ in items.values() if _['id'] == _id), None)
@@ -140,7 +147,7 @@ def main():
     stats = calc_stats(loadout)
     print(stats)
     for priority in args.stat:
-        priority = priority.split(',')[0]
+        priority = re.sub(r'^(\S+)[,x]\d.*', r'\1', priority)
         display_priority(stats, priority)
     for i in loadout:
         print(f"        {i['id']:3d}, # {i['name']}")
