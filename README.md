@@ -6,7 +6,7 @@ There are 2 capabilities here:
 ### To run the gear optimizer
 Install pymoo:
 
-```pip install pymoo```
+```pip install pymoo==0.4.2```
   
 Run:
 
