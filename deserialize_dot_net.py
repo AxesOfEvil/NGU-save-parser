@@ -1,5 +1,3 @@
-import time
-import sys
 import struct
 import copy
 import logging
@@ -8,11 +6,13 @@ LOG = logging.getLogger()
 
 SEPARATOR = '/'
 
+
 class UnhandledData(Exception):
     pass
 
+
 class Deserializer:
-    def __init__(self, data, pos = 0):
+    def __init__(self, data, pos=0):
         self.data = data
         self.pos = pos
         self.idmap = {}
@@ -56,20 +56,18 @@ class Deserializer:
         self._finalize()
         return ret
 
-
     def _finalize(self):
         for _id in self.idmap:
             self._fix_deferred_id(_id)
-
 
     def _fix_deferred_id(self, _id):
         if _id not in self.seen:
             self.seen.add(_id)
             if isinstance(self.idmap[_id], list):
-                for _idx,_val in enumerate(self.idmap[_id]):
+                for _idx, _val in enumerate(self.idmap[_id]):
                     if isinstance(_val, (list, tuple)) and _val[-1] == 'deferred':
-                         self._fix_deferred_id(_val[0])
-                         self.idmap[_id][_idx] = self.idmap[_val[0]]
+                        self._fix_deferred_id(_val[0])
+                        self.idmap[_id][_idx] = self.idmap[_val[0]]
             self._fix_deferred_dict(self.idmap[_id])
 
     def _fix_deferred_dict(self, item):
@@ -81,17 +79,17 @@ class Deserializer:
             if key == 'deferred':
                 continue
             if key == 'value' and isinstance(ref, list):
-                for _idx,_val in enumerate(ref):
+                for _idx, _val in enumerate(ref):
                     if isinstance(_val, (list, tuple)) and _val[-1] == 'deferred':
-                         self._fix_deferred_id(_val[0])
-                         ref[_idx] = self.idmap[_val[0]]
+                        self._fix_deferred_id(_val[0])
+                        ref[_idx] = self.idmap[_val[0]]
                 continue
             self._fix_deferred_dict(ref)
         if 'deferred' in item:
             self._fix_deferred_id(item['deferred'])
             item['value'] = self.idmap[item['deferred']]
             del item['deferred']
-         
+
     def read_byte(self, peek=False):
         ret = self.data[self.pos]
         if not peek:
@@ -109,37 +107,37 @@ class Deserializer:
             shift += 7
             if _siz < 128:
                 break
-        ret = self.data[self.pos: self.pos+size].decode('utf8')
+        ret = self.data[self.pos: self.pos + size].decode('utf8')
         self.pos += size
         return ret
 
     def read_u32(self):
-        res = struct.unpack('<L', self.data[self.pos:self.pos+4])
+        res = struct.unpack('<L', self.data[self.pos:self.pos + 4])
         self.pos += 4
         return res[0]
 
     def read_i32(self):
-        res = struct.unpack('<l', self.data[self.pos:self.pos+4])
+        res = struct.unpack('<l', self.data[self.pos:self.pos + 4])
         self.pos += 4
         return res[0]
 
     def read_u64(self):
-        res = struct.unpack('<Q', self.data[self.pos:self.pos+8])
+        res = struct.unpack('<Q', self.data[self.pos:self.pos + 8])
         self.pos += 8
         return res[0]
 
     def read_i64(self):
-        res = struct.unpack('<q', self.data[self.pos:self.pos+8])
+        res = struct.unpack('<q', self.data[self.pos:self.pos + 8])
         self.pos += 8
         return res[0]
 
     def read_float(self):
-        res = struct.unpack('<f', self.data[self.pos:self.pos+4])
+        res = struct.unpack('<f', self.data[self.pos:self.pos + 4])
         self.pos += 4
         return res[0]
 
     def read_double(self):
-        res = struct.unpack('<d', self.data[self.pos:self.pos+8])
+        res = struct.unpack('<d', self.data[self.pos:self.pos + 8])
         self.pos += 8
         return res[0]
 
@@ -153,7 +151,7 @@ class Deserializer:
             new_end = min(end, start + 16)
             _hex = [f"{_x:02x}" for _x in self.data[start:new_end]]
             _hex += [f"  " for _x in range(new_end, start + 16)]
-            _str = [f"{chr(_x) if 31<_x<127 else '.'}" for _x in self.data[start:new_end]]
+            _str = [f"{chr(_x) if 31 < _x < 127 else '.'}" for _x in self.data[start:new_end]]
             _str += [" " for _x in range(new_end, start + 16)]
             LOG.debug(f"{start:08x}    " + " ".join(_hex) + "    " + "".join(_str))
             start += 16
@@ -179,21 +177,21 @@ class Deserializer:
         for name in cls_idx:
             type_tag = cls[name]['type']
             cls[name]['code'] = self.get_type_spec(type_tag)
-        #self.printhex(30)
+        self.printhex(30)
         cls['__cname__'] = cname
         cls['__fields__'] = cls_idx
         self.meta[_id] = cls
         if elem_type == 5:
             # only classes have assembly id
             assemblyid = self.read_u32()
-        #self.printhex(orig_pos, self.pos)
+        self.printhex(orig_pos, self.pos)
         self.idmap[_id] = self.get_class_values(_id)
         return self.idmap[_id]
 
     def parse_refobj(self):
         orig_pos = self.pos
         if self.data[self.pos] != 1:
-            LOG.error(f"Unsupported data type: {data[self.pos]}")
+            LOG.error(f"Unsupported data type: {self.data[self.pos]}")
             raise UnhandledData
         self.pos += 1
         _id = self.read_u32()
@@ -204,7 +202,7 @@ class Deserializer:
     def parse_primarr(self):
         orig_pos = self.pos
         if self.data[self.pos] != 15:
-            LOG.error(f"Unsupported data type: {data[self.pos]}")
+            LOG.error(f"Unsupported data type: {self.data[self.pos]}")
             raise UnhandledData
         self.pos += 1
         _id = self.read_u32()
@@ -220,7 +218,7 @@ class Deserializer:
     def parse_generic_array(self):
         orig_pos = self.pos
         if self.data[self.pos] != 7:
-            LOG.error(f"Unsupported data type: {data[self.pos]}")
+            LOG.error(f"Unsupported data type: {self.data[self.pos]}")
             raise UnhandledData
         self.pos += 1
         _id = self.read_u32()
@@ -262,18 +260,18 @@ class Deserializer:
             field = self.read_str()
             cls_idx.append(field)
             count -= 1
-        
-    def get_type_spec(self, type_tag): 
-        if type_tag == 0: # primitive
+
+    def get_type_spec(self, type_tag):
+        if type_tag == 0:  # primitive
             return self.read_byte()
-        elif type_tag == 1: # string
+        elif type_tag == 1:  # string
             return None
-        elif type_tag == 3: # runtimeobj
+        elif type_tag == 3:  # runtimeobj
             return self.read_str()
-        elif type_tag == 4: # generic (nested class/array)
+        elif type_tag == 4:  # generic (nested class/array)
             # class-name, id
             return self.read_str(), self.read_u32()
-        elif type_tag == 7: # primitive array
+        elif type_tag == 7:  # primitive array
             return self.read_byte()
         else:
             LOG.error(f"Can't handle type '{type_tag}'")
@@ -308,26 +306,26 @@ class Deserializer:
             elem = self.data[self.pos]
             if elem == 1:  # reference of object
                 origpos = self.pos
+                LOG.debug(f"(1) {name} - {self.pos:02x}")
+                self.printhex(origpos, self.pos)
                 return None, self.parse_refobj()
-                #LOG.debug(f"(1) {name} - {self.pos:02x}")
-                #self.printhex(origpos, self.pos)
             elif elem == 4:  # runtime
                 origpos = self.pos
-                return None,  self.parse_class()
-                #LOG.debug(f"(5) {name} - {origpos:02x}")
-                #self.printhex(origpos, self.pos+48)
+                LOG.debug(f"(5) {name} - {origpos:02x}")
+                self.printhex(origpos, self.pos + 48)
+                return None, self.parse_class()
             elif elem == 5:  # class
                 origpos = self.pos
-                return None,  self.parse_class()
-                #LOG.debug(f"(5) {name} - {origpos:02x}")
-                #self.printhex(origpos, self.pos+48)
+                LOG.debug(f"(5) {name} - {origpos:02x}")
+                self.printhex(origpos, self.pos + 48)
+                return None, self.parse_class()
             elif elem == 9:  # object ref
                 self.pos += 1
                 _id = self.read_u32()
-                #if _id in self.idmap:
-                #    LOG.debug(f"Found object reference: {self.idmap[_id]} for {name}")
-                #else:
-                #    LOG.debug(f"Found deferred object reference '{_id}' for {name}")
+                if _id in self.idmap:
+                    LOG.debug(f"Found object reference: {self.idmap[_id]} for {name}")
+                else:
+                    LOG.debug(f"Found deferred object reference '{_id}' for {name}")
                 return _id, "deferred"
             elif elem == 10:  # NullValue
                 self.pos += 1
@@ -336,23 +334,27 @@ class Deserializer:
                 self.pos += 1
                 count = self.read_byte()
                 return None, [None for _ in range(0, count)]
+            elif elem == 14:  # array of 32bit null
+                self.pos += 1
+                count = self.read_u32()
+                return None, [None for _ in range(0, count)]
             else:
                 LOG.error(f"Unknown element type {elem} for {name}")
                 raise UnhandledData
         else:
-            LOG.error(f"Couldn't handle type {_type} for {name}")
+            LOG.error(f"Couldn't handle type {type_tag} for {name}")
             raise UnhandledData
 
     def get_class_values(self, metaid):
         if metaid not in self.meta:
-             LOG.error(f"Couldn't find meta-id {metaid}")
-             raise UnhandledData
+            LOG.error(f"Couldn't find meta-id {metaid}")
+            raise UnhandledData
         cls = copy.deepcopy(self.meta[metaid])
         cls_idx = cls.pop('__fields__')
         start = self.pos
         for name in cls_idx:
             _type = cls[name]['type']
-            # LOG.debug(f"{name} -- {_type}")
+            LOG.debug(f"{name} -- {_type}")
             _id, value = self.get_single_value(_type, cls[name]['code'], name)
             if value == 'deferred':
                 cls[name]['deferred'] = _id
@@ -360,22 +362,23 @@ class Deserializer:
                 cls[name]['value'] = value
         return cls
 
+
 class DictQuery(dict):
     # from https://www.haykranen.nl/2016/02/13/handling-complex-nested-dicts-in-python/
-    def get(self, path, default = None):
+    def get(self, path, default=None):
         keys = path.split(SEPARATOR)
         val = None
 
         for key in keys:
             if val:
                 if isinstance(val, list):
-                    val = [ v.get(key, default) if v else None for v in val]
+                    val = [v.get(key, default) if v else None for v in val]
                 else:
                     val = val.get(key, default)
             else:
                 val = dict.get(self, key, default)
 
             if not val:
-                break;
+                break
 
         return val

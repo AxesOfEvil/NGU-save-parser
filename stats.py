@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from optimizer import run_optimizer
 import numpy as np
 
+
 @dataclass
 class Stats:
     power: int = 0
@@ -34,129 +35,158 @@ class Stats:
     quest: float = 0
     cooking: float = 100
 
+
 def func_ABC_ADE(indices, skew=1.0):
     A, B, C, D, E = indices
+
     def generator(L, x):
-        return ((1 + np.sum(L[A][x])) * 
-            (skew * (1 + np.sum(L[B][x])) * (1 + np.sum(L[C][x])) + (1 + np.sum(L[D][x])) * (1 + np.sum(L[E][x]))))
+        return ((1 + np.sum(L[A][x])) *
+                (skew * (1 + np.sum(L[B][x])) * (1 + np.sum(L[C][x])) + (1 + np.sum(L[D][x])) * (1 + np.sum(L[E][x]))))
+
     return generator
+
 
 def func_ABsqrtC_ADsqrtE(indices, skew=1.0):
     A, B, C, D, E = indices
+
     def generator(L, x):
         term1 = (1 + np.sum(L[B][x])) * math.sqrt(1 + np.sum(L[C][x]))
         term2 = (1 + np.sum(L[D][x])) * math.sqrt(1 + np.sum(L[E][x]))
         return (1 + np.sum(L[A][x])) * (skew * term1 + term2)
+
     return generator
+
 
 def func_ABC(indices, **_args):
     A, B, C = indices
+
     def generator(L, x):
-        return (1 + np.sum(L[A][x])) *  ((1 + np.sum(L[B][x])) * (1 + np.sum(L[C][x])))
+        return (1 + np.sum(L[A][x])) * ((1 + np.sum(L[B][x])) * (1 + np.sum(L[C][x])))
+
     return generator
+
 
 def func_ABsqrtC(indices, **_args):
     A, B, C = indices
+
     def generator(L, x):
-        return (1 + np.sum(L[A][x])) *  ((1 + np.sum(L[B][x])) * math.sqrt(1 + np.sum(L[C][x])))
+        return (1 + np.sum(L[A][x])) * ((1 + np.sum(L[B][x])) * math.sqrt(1 + np.sum(L[C][x])))
+
     return generator
+
 
 def func_AB(indices, **_args):
     A, B = indices
+
     def generator(L, x):
         return ((1 + np.sum(L[A][x])) * (1 + np.sum(L[B][x])))
+
     return generator
+
 
 def func_AB_CD(indices, skew=1.0):
     A, B, C, D = indices
+
     def generator(L, x):
         return skew * (1 + np.sum(L[A][x])) * (1 + np.sum(L[B][x])) + (1 + np.sum(L[C][x])) * (1 + np.sum(L[D][x]))
+
     return generator
+
 
 def func_AB_AC(indices, skew=1.0):
     A, B, C = indices
+
     def generator(L, x):
         return (1 + np.sum(L[A][x])) * (skew * (1 + np.sum(L[B][x])) + (1 + np.sum(L[C][x])))
+
     return generator
+
 
 def func_A(indices, **_args):
     A, = indices
+
     def generator(L, x):
         return 1 + np.sum(L[A][x])
+
     return generator
+
 
 def func_negA(indices, **_args):
     A, = indices
+
     def generator(L, x):
         return -1 * (1 + np.sum(L[A][x]))
+
     return generator
+
 
 STAT_MAP = {
     'ngu': {
         'stats': ['ngu', 'epow', 'ecap', 'mpow', 'mcap'],
         'func': func_ABC_ADE,
-        },
+    },
     'e_ngu': {
         'stats': ['ngu', 'epow', 'ecap'],
         'func': func_ABC,
-        },
+    },
     'm_ngu': {
         'stats': ['ngu', 'mpow', 'mcap'],
         'func': func_ABC,
-        },
+    },
     'pow_cap': {
         'stats': ['epow', 'ecap', 'mpow', 'mcap'],
         'func': func_AB_CD,
-        },
+    },
     'e_pow_cap': {
         'stats': ['epow', 'ecap'],
         'func': func_AB,
-        },
+    },
     'm_pow_cap': {
         'stats': ['mpow', 'mcap'],
         'func': func_AB,
-        },
+    },
     'beards': {
         'stats': ['beards', 'ebars', 'epow', 'mbars', 'mpow'],
         'func': func_ABsqrtC_ADsqrtE,
-        },
+    },
     'e_beards': {
         'stats': ['beards', 'ebars', 'epow'],
         'func': func_ABsqrtC,
-        },
+    },
     'm_beards': {
         'stats': ['beards', 'mbars', 'mpow'],
         'func': func_ABsqrtC,
-        },
+    },
     'wandoos': {
         'stats': ['wandoos', 'ecap', 'mcap'],
         'func': func_AB_AC,
-        },
+    },
     'e_wandoos': {
         'stats': ['wandoos', 'ecap'],
         'func': func_AB,
-        },
+    },
     'e_wandoos': {
         'stats': ['wandoos', 'mcap'],
         'func': func_AB,
-        },
+    },
     'adv_trn': {
         'stats': ['adv_trn', 'ecap', 'epow'],
         'func': func_ABsqrtC,
-        },
+    },
     'augs': {
         'stats': ['augs', 'epow', 'ecap'],
         'func': func_ABC,
-        },
+    },
     'respawn': {
         'stats': ['respawn'],
         'func': func_negA,
-        },
+    },
     'cooldown': {
         'stats': ['cooldown'],
         'func': func_negA,
-        },
-    }
+    },
+}
+
 
 def expand_stypes(stypes):
     if not stypes:
@@ -170,6 +200,7 @@ def expand_stypes(stypes):
             keys[_t] = 1
     return list(keys.keys())
 
+
 def filter_items(items, stypes=None):
     filtered = []
     stypes = expand_stypes(stypes)
@@ -179,7 +210,7 @@ def filter_items(items, stypes=None):
             sys.exit(1)
     for item in items:
         if not item:
-           continue
+            continue
         stats = calc_stats(item)
         for stype in stypes:
             val = getattr(stats, stype)
@@ -190,6 +221,7 @@ def filter_items(items, stypes=None):
                 filtered.append(item)
                 break
     return filtered
+
 
 def calc_stats(loadout):
     stats = Stats()
@@ -218,7 +250,7 @@ def calc_stats(loadout):
             elif 'MagicCap' in stype:
                 stats.mcap += adjval
             elif "AllPerBar" in stype:
-                stats.ebars+= adjval
+                stats.ebars += adjval
                 stats.mbars += adjval
             elif 'EnergyPerBar' in stype:
                 stats.ebars += adjval
@@ -258,18 +290,19 @@ def calc_stats(loadout):
                 stats.mspeed += adjval
             elif 'Cooking' in stype:
                 stats.cooking += adjval
-            #DaycareSpeed
-            #Blood
-            #Res3Power
-            #Res3Cap
-            #Res3Bars
-            #HackSpeed
-            #WishSpeed
-            #GoldRNG
+            # DaycareSpeed
+            # Blood
+            # Res3Power
+            # Res3Cap
+            # Res3Bars
+            # HackSpeed
+            # WishSpeed
+            # GoldRNG
             else:
                 logging.critical(f"Can't handle item type {stype}")
                 sys.exit(1)
     return stats
+
 
 def calc_priority(stats, priority):
     # beards: bars + sqrt(power)
@@ -318,6 +351,7 @@ def calc_priority(stats, priority):
     else:
         return getattr(stats, _p)
 
+
 def compare_stats(ref_stats, stats, priorities):
     for _p in priorities:
         val = calc_priority(stats, _p)
@@ -333,6 +367,7 @@ def compare_stats(ref_stats, stats, priorities):
         if val < ref_val:
             return False
     return False
+
 
 def optimize_items(all_items, locked, priorities):
     def items_by_type(items, itype):
@@ -354,7 +389,7 @@ def optimize_items(all_items, locked, priorities):
         if len(items) > allowed:
             # There are too many potential items, so we need to select a subset
             item_groups.append((len(items), allowed))
-            #var_items.extend(random.sample(items, k=len(items)))
+            # var_items.extend(random.sample(items, k=len(items)))
             var_items.extend(items)
         elif len(items) <= allowed:
             # all items can be used
@@ -366,11 +401,11 @@ def optimize_items(all_items, locked, priorities):
 
     for priority, num_accs, skew in priorities:
         filt_items = filter_items(all_items, [priority])
-        head_items = items_by_type(filt_items, "Head") 
-        chest_items = items_by_type(filt_items, "Chest") 
+        head_items = items_by_type(filt_items, "Head")
+        chest_items = items_by_type(filt_items, "Chest")
         legs_items = items_by_type(filt_items, "Legs")
-        boots_items = items_by_type(filt_items, "Boots") 
-        weapon_items = items_by_type(filt_items, "Weapon") 
+        boots_items = items_by_type(filt_items, "Boots")
+        weapon_items = items_by_type(filt_items, "Weapon")
         acc_items = items_by_type(filt_items, "Accessory")
         if False:
             logging.warning(f"head: {len(head_items)}")
@@ -418,9 +453,9 @@ def optimize_items(all_items, locked, priorities):
     # print(calc_priority(calc_stats(loadout), 'ngu'))
     return loadout
 
+
 def get_stat_list():
     attrs = {_ for _ in Stats.__dict__ if not _.startswith('__')}
     for attr in STAT_MAP:
         attrs.add(attr)
     return attrs
-

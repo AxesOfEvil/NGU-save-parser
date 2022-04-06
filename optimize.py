@@ -6,14 +6,15 @@ import re
 from spectype import SpecType
 from items import Items, ItemType
 from stats import calc_stats, filter_items, optimize_items, calc_priority, get_stat_list
-from itertools import combinations
 from parse_saves import read_savegame
+
 
 def show_stats():
     stats = sorted(list(get_stat_list()))
     print("Available stats:")
     for stat in stats:
         print(f"\t{stat}")
+
 
 def build_item(item):
     power = item['curAttack']['value']
@@ -30,8 +31,8 @@ def build_item(item):
             "type": SpecType[_type].name,
             "typeid": f"{_type} - {SpecType[_type].name}",
             "value": val,
-            "adjval": val  / SpecType[_type].div if SpecType[_type].div else 0,
-            }
+            "adjval": val / SpecType[_type].div if SpecType[_type].div else 0,
+        }
     return {
         'id': itemid,
         'name': Items[itemid],
@@ -39,7 +40,7 @@ def build_item(item):
         'power': power,
         'toughness': toughness,
         'special': special,
-        }
+    }
 
 
 def parse_items(sav):
@@ -48,24 +49,24 @@ def parse_items(sav):
     cube = {
         "power": inventory['cubePower']['value'],
         "toughness": inventory['cubeToughness']['value'],
-        }
+    }
     items = {}
     for slot in ('head', 'chest', 'legs', 'boots', 'weapon'):
         item = inventory[slot]['value']
         items[slot] = build_item(item)
     for idx, item in enumerate(inventory['accs']['value']['_items']['value']):
         if list(item) != [None, None]:
-            items[f'acc{idx+1}'] = build_item(item)
+            items[f'acc{idx + 1}'] = build_item(item)
     for idx, item in enumerate(inventory['daycare']['value']['_items']['value']):
         if list(item) != [None, None]:
-            items[f'daycare{idx+1}'] = build_item(item)
+            items[f'daycare{idx + 1}'] = build_item(item)
     for idx, item in enumerate(inventory['inventory']['value']['_items']['value']):
         row = idx // 12
         col = idx % 12
         if list(item) == [None, None] or item['id']['value'] == 0:
             continue
         items[f"{row},{col}"] = build_item(item)
-        #items[(row, col)] = build_item(item)
+        # items[(row, col)] = build_item(item)
 
     missing = False
     for pos, item in items.items():
@@ -81,6 +82,7 @@ def parse_items(sav):
         sys.exit(1)
     return items
 
+
 def display_priority(stats, priority):
     priorities = (priority,)
     for _p in ('ngu', 'beards', 'pow_cap', 'wandoos'):
@@ -88,6 +90,7 @@ def display_priority(stats, priority):
             priorities = (_p, f'e_{_p}', f'm_{_p}')
             break
     print("  ".join([f"{_p}; {calc_priority(stats, _p)}" for _p in priorities]))
+
 
 def optimize(items, lock=None, priority_list=None, num_accs=None):
     locked = []
@@ -118,9 +121,10 @@ def optimize(items, lock=None, priority_list=None, num_accs=None):
             item = next((_ for _ in items.values() if _['id'] == _id), None)
             if item:
                 locked.append(item)
-    #filt_items = filter_items(items, [_[0] for _ in priority])
+    # filt_items = filter_items(items, [_[0] for _ in priority])
     res = optimize_items(items.values(), locked, priority)
     return res
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -151,7 +155,9 @@ def main():
         display_priority(stats, priority)
     for i in loadout:
         print(f"        {i['id']:3d}, # {i['name']}")
-#print(json.dumps(items, indent=2))
-#print(json.dumps(loadout, indent=2))
+
+
+# print(json.dumps(items, indent=2))
+# print(json.dumps(loadout, indent=2))
 
 main()

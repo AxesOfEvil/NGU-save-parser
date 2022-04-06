@@ -23,21 +23,21 @@ HEADERS = {
 }
 
 GRAPH = {
-  'size': (20, 10),
-  'graphs': [
-    # Row 1
-    [
-      {'fields': ["exp"], 'log': True},
-      {'fields': ['base_power', 'base_toughness'], 'log': True},
-      {'fields': ['base_energy_cap', 'base_magic_cap'], 'log' :True},
-    ],
-    # Row 2
-    [
-      {'fields': ['cumulative_gold'], 'log': True},
-      {'fields': ['boss']},
-      {'fields': ['itopod_maxlvl']},
-    ],
-  ]
+    'size': (20, 10),
+    'graphs': [
+        # Row 1
+        [
+            {'fields': ["exp"], 'log': True},
+            {'fields': ['base_power', 'base_toughness'], 'log': True},
+            {'fields': ['base_energy_cap', 'base_magic_cap'], 'log': True},
+        ],
+        # Row 2
+        [
+            {'fields': ['cumulative_gold'], 'log': True},
+            {'fields': ['boss']},
+            {'fields': ['itopod_maxlvl']},
+        ],
+    ]
 }
 
 LOG = logging.getLogger()
@@ -54,16 +54,17 @@ def read_savegame(fname):
         a = _fh.read()
         data = base64.b64decode(a)
         try:
-            offset = data.index(b'checksum')+34
+            offset = data.index(b'checksum') + 34
         except:
-            print("Failed to find checksum")
+            logging.critical("Failed to find checksum")
             sys.exit(1)
         data = base64.b64decode(data[offset:])
         ret = []
-        des = Deserializer(data, data.index(b'PlayerData')-6)
+        des = Deserializer(data, data.index(b'PlayerData') - 6)
         des.parse()
         ret = des.get('PlayerData')
         return ret
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -109,7 +110,7 @@ def main():
     jsondata = []
     csvdata = []
     graphdata = {_k: [] for _k in HEADERS}
-    
+
     for fname in args.saves:
         obj = read_savegame(fname)
         if args.json:
@@ -148,7 +149,7 @@ def main():
                     if key not in HEADERS:
                         LOG.error(f"Cannot plot unknown key '{key}'")
                         continue
-                    label = key # if len(graph['fields']) > 1 else None
+                    label = key  # if len(graph['fields']) > 1 else None
                     sns.scatterplot(data=data, x='playtime', y=key, label=label, ax=_ax)
                     if graph.get('log'):
                         _ax.set(yscale="log")
@@ -156,7 +157,8 @@ def main():
         if args.outfile:
             figure.savefig(args.outfile)
         else:
-            plt.show() 
+            plt.show()
+
 
 if __name__ == "__main__":
     main()
