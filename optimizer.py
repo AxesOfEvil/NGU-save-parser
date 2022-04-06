@@ -1,4 +1,3 @@
-import logging
 import random
 import numpy as np
 from pymoo.model.problem import Problem
@@ -6,9 +5,9 @@ from pymoo.model.crossover import Crossover
 from pymoo.model.mutation import Mutation
 from pymoo.model.sampling import Sampling
 from pymoo.algorithms.so_genetic_algorithm import GA
-from pymoo.algorithms.nsga2 import NSGA2
 
 from pymoo.optimize import minimize
+
 
 class SubsetProblem(Problem):
     def __init__(self,
@@ -53,7 +52,7 @@ class MySampling(Sampling):
         for k in range(n_samples):
             arr = []
             for grp in problem.groups:
-               arr.append(grp[0] + np.random.permutation(grp[1])[:grp[2]])
+                arr.append(grp[0] + np.random.permutation(grp[1])[:grp[2]])
             I = np.concatenate(arr)
             X[k, I] = True
 
@@ -88,8 +87,8 @@ class MyMutation(Mutation):
         for i in range(X.shape[0]):
             grp = problem.groups[random.randrange(len(problem.groups))]
             X[i, :] = X[i, :]
-            is_false = grp[0] + np.where(np.logical_not(X[i, grp[0]:grp[0]+grp[1]]))[0]
-            is_true = grp[0] + np.where(X[i, grp[0]:grp[0]+grp[1]])[0]
+            is_false = grp[0] + np.where(np.logical_not(X[i, grp[0]:grp[0] + grp[1]]))[0]
+            is_true = grp[0] + np.where(X[i, grp[0]:grp[0] + grp[1]])[0]
             X[i, np.random.choice(is_false)] = True
             X[i, np.random.choice(is_true)] = False
 
@@ -99,9 +98,9 @@ class MyMutation(Mutation):
 def run_optimizer(stats, offset, item_groups, func, unique=None):
     problem = SubsetProblem(stats, offset, item_groups, func, unique=unique)
 
-    #algorithm = NSGA2(
+    # algorithm = NSGA2(
     algorithm = GA(
-        pop_size=stats.shape[1]-offset,
+        pop_size=stats.shape[1] - offset,
         sampling=MySampling(),
         crossover=BinaryCrossover(),
         mutation=MyMutation(),
