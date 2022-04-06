@@ -334,6 +334,10 @@ class Deserializer:
                 self.pos += 1
                 count = self.read_byte()
                 return None, [None for _ in range(0, count)]
+            elif elem == 14:  # array of 32bit null
+                self.pos += 1
+                count = self.read_u32()
+                return None, [None for _ in range(0, count)]
             else:
                 LOG.error(f"Unknown element type {elem} for {name}")
                 raise UnhandledData
