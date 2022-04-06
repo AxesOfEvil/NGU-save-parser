@@ -34,6 +34,12 @@ class Stats:
     cooldown: float = 100
     quest: float = 0
     cooking: float = 100
+    r3cap: float = 100
+    r3pow: float = 100
+    r3bars: float = 100
+    wishes: float = 100
+    hacks: float = 100
+    daycare: float = 100
 
 
 def func_ABC_ADE(indices, skew=1.0):
@@ -290,13 +296,20 @@ def calc_stats(loadout):
                 stats.mspeed += adjval
             elif 'Cooking' in stype:
                 stats.cooking += adjval
+            elif 'Res3Power' in stype:
+                stats.r3pow += adjval
+            elif 'Res3Cap' in stype:
+                stats.r3cap += adjval
+            elif 'Res3Bar' in stype:
+                stats.r3bars += adjval
+            elif 'WishSpeed' in stype:
+                stats.wishes += adjval
+            elif 'HackSpeed' in stype:
+                stats.hacks += adjval
+            elif 'DaycareSpeed' in stype:
+                stats.daycare += adjval
             # DaycareSpeed
             # Blood
-            # Res3Power
-            # Res3Cap
-            # Res3Bars
-            # HackSpeed
-            # WishSpeed
             # GoldRNG
             else:
                 logging.critical(f"Can't handle item type {stype}")
